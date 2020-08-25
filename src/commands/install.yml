@@ -1,0 +1,68 @@
+description: Install CMake.
+parameters:
+  version:
+    description: The version of CMake to install.
+    type: string
+    default: "3.18.2"
+  install-dir:
+    description: The path to install CMake to.
+    type: string
+    default: "$HOME/cmake"
+  cache:
+    description: Whether or not to cache the installation.
+    type: boolean
+    default: true
+  cache-key:
+    description: String to use in cache key. Typically overridden when needed to bust cache.
+    type: string
+    default: "v1"
+steps:
+  - when:
+      condition:
+        equal: [<< parameters.cache >>, true]
+      steps:
+        - run:
+            name: Prep cache restore
+            command: mkdir -pv << parameters.install-dir >>
+        - restore_cache:
+            keys:
+              - cmake-<< parameters.cache-key >>-<< parameters.version >>
+  - run:
+      name: Add CMake to PATH
+      command: |
+        echo 'export PATH="<< parameters.install-dir >>/bin:$PATH"' >> $BASH_ENV
+  - run:
+      name: Install CMake
+      command: |
+        if which cmake; then
+          if cmake --version | grep "<< parameters.version >>"; then
+            echo "CMake is already installed."
+            exit 0
+          else
+            echo "CMake is already installed but it is the wrong version."
+          fi
+        fi
+
+        rm -rf << parameters.install-dir >>/*
+        echo "Installing the requested version of CMake."
+        baseUrl="https://github.com/Kitware/CMake/releases/download/"
+        url="${baseUrl}/v<< parameters.version >>/cmake-<< parameters.version >>-Linux-x86_64.tar.gz"
+        curl -sSL -o /tmp/cmake.tar.gz $url
+        tar -C << parameters.install-dir >> --strip-components 1 -zxf /tmp/cmake.tar.gz
+  - run:
+      name: Remove unnecessary files
+      command: rm -rf << parameters.install-dir >>/{doc,man}
+  - run:
+      name: Verify CMake installation
+      command: |
+        ls -l << parameters.install-dir >>/bin
+        echo $PATH
+        cmake --version
+  - when:
+      condition:
+        equal: [<< parameters.cache >>, true]
+      steps:
+        - save_cache:
+            key: cmake-<< parameters.cache-key >>-<< parameters.version >>
+            paths:
+              - << parameters.install-dir >>

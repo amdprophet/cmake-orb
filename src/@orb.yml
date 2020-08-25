@@ -1,0 +1,7 @@
+version: 2.1
+
+description: Common CircleCI tasks for CMake.
+
+display:
+  source_url: https://github.com/amdprophet/cmake-orb
+  home_url: https://cmake.org/
